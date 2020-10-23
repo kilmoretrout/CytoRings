@@ -8,7 +8,7 @@ Requires Python 2 and the requirements listed in requirements.txt
 python2 extract_optnet.py --verbose --idir some_folder_of_tiffs --ofile output_file.hdf5
 ```
 
-The folder of TIFFs must have files that have a 3-digit identifier in the file name (example: myosin_435.tiff).  This results in a 72-sided polygon for each frame.  That polygon's can be read into NumPy arrays like:
+The folder of TIFFs must have files that have a unique 3-digit identifier in the file name (example: myosin_435.tiff).  This results in a 72-sided polygon for each frame in each TIFF.  Those polygons can be read into NumPy arrays like:
 
 ```
 import h5py
@@ -23,6 +23,14 @@ print(polygon.shape)
 # 3D array (frames, index of vertex, x and y coordinate (pixel space))
 (120, 72, 2)
 ```
+
+If you specify:
+
+```
+python2 extract_optnet.py --verbose --idir some_folder_of_tiffs --ofile output_file.hdf5 --plot --movie_dir movies/
+```
+
+Then you will have a directory of visualization MP4s that show the original frames with the polygons plotted. This or some other form of visualization is highly recommended as there's no guaruntee segmentation will work well.  Requires FFMPEG to be installed and in the system path.
 
 Or you can convert the database to a folder of CSVs:
 
