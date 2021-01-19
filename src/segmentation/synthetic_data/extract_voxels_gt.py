@@ -120,7 +120,7 @@ def main():
             for j in range(len(x_)):
                 vox[15000 - y_[j], x_[j]] += 1
 
-            imsave('{0:03d}.tiff'.format(k), vox)
+
 
 
 if __name__ == '__main__':

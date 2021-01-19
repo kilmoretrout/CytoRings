@@ -19,6 +19,7 @@ import argparse
 import sys
 import os
 import h5py
+import pandas as pd
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import matplotlib.pyplot as plt
@@ -45,6 +46,8 @@ if __name__ == '__main__':
         description="Takes a folder and segments all the TIF stacks within it using Florians's routines.")
     parser.add_argument("--verbose", action="store_true",
                         help="Verbosity settings.  Will print progress to the console.")
+    parser.add_argument("--info_csv", default = "cyto_data/data_files.csv")
+
     parser.add_argument("--idir", default="cyto_ring_data", help="Folder to segment.")
     parser.add_argument("--ofile", default="data_v7.0.hdf5", help="Save as HDF5 database.")
     parser.add_argument("--normalize", action="store_true",
@@ -76,6 +79,9 @@ if __name__ == '__main__':
     numbers = [get_number(u) for u in stacks]
     stacks = [x for y, x in sorted(zip(numbers, stacks))]
 
+    data_files = pd.read_csv(args.info_csv, index_col = False)
+    data_files = data_files.set_index('number')
+
     # initialize the output file
     ofile = h5py.File(args.ofile, 'w')
 
@@ -105,8 +111,6 @@ if __name__ == '__main__':
 
         # normalize the stack
         stack = stack.astype(np.float32) / np.max(stack.astype(np.float32))
-
-        print(stack.shape)
 
         if len(stack.shape) != 3:
             logging.debug('0: mismatched shape! for file {0}'.format(ifile))
@@ -140,41 +144,14 @@ if __name__ == '__main__':
 
         poly = np.array(poly)
 
-        if args.plot:
-            # make a movie
-            cmd = "ffmpeg -y -f rawvideo -loglevel panic -vcodec rawvideo -s {1}x{2} -pix_fmt rgb24 -r 4 -i - -an -vcodec libx264 -pix_fmt yuv420p {0}".format(
-                os.path.join(args.movie_dir, '{0}.mp4'.format(number)), 800, 600).split(' ')
-            p = Popen(cmd, stdin=PIPE)
-
-            for frame in range(0, len(data.images)):
-                xy = poly[frame]
-
-                xs = xy[:, 0]
-                ys = xy[:, 1]
-
-                fig = plt.figure(figsize=(8, 6))
-                ax = plt.subplot(111)
-
-                ax.set_title('Frame {0}'.format(frame))
-                ax.imshow(stack[frame], cmap='gray')
-                ax.plot(xs, ys)
-
-                canvas = FigureCanvas(fig)
-                canvas.draw()
-
-                buf = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(600, 800, 3)
-                p.stdin.write(buf.tostring())
-
-                plt.close()
-
-            p.stdin.close()
-            p.wait()
+        case = data_files['case'][int(number)]
 
         # save and move on
         if number in numbers_done:
             pass
         else:
-            ofile.create_dataset('{0}/xy'.format(number), data = poly)
+            ofile.create_dataset('{1}/{0}/xy'.format(number, case), data = poly)
+            ofile.create_dataset('{1}/{0}/stack'.format(number, case), data = stack)
 
             result['number'].append(number)
 
