@@ -15,14 +15,19 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from subprocess import Popen, PIPE
+import cv2
+from tifffile import imsave
 
 def parse_args():
     # Argument Parser
     parser = argparse.ArgumentParser()
     # my args
     parser.add_argument("--verbose", action="store_true", help="display messages")
+    # hdf5 file that has the extracted polygons in them
     parser.add_argument("--ifile", default = "None")
+    #
     parser.add_argument("--odir", default = "cyto_data/movies")
+    parser.add_argument("--mask_dir", default = "None")
 
     args = parser.parse_args()
 
@@ -38,6 +43,13 @@ def parse_args():
             logging.debug('root: made output directory {0}'.format(args.odir))
         else:
             os.system('rm -rf {0}'.format(os.path.join(args.odir, '*')))
+
+    if args.mask_dir != "None":
+        if not os.path.exists(args.mask_dir):
+            os.mkdir(args.mask_dir)
+            logging.debug('root: made output directory {0}'.format(args.mask_dir))
+        else:
+            os.system('rm -rf {0}'.format(os.path.join(args.mask_dir, '*')))
 
     return args
 
@@ -55,8 +67,8 @@ def main():
         for rep in reps:
             logging.info('working on case {0}, rep {1}'.format(case, rep))
 
-            if 'xy_phi' in list(ifile[case][rep].keys()):
-                continue
+            #if 'xy_phi' in list(ifile[case][rep].keys()):
+            #    continue
 
             xy = np.array(ifile[case][rep]['xy'])
             stack = np.array(ifile[case][rep]['stack'])
@@ -65,6 +77,8 @@ def main():
             pc.solve_axial_slices()
             pc.solve_phi()
 
+            # make an 8 bit 3D array for storing the masks
+            stack_mask = np.zeros(stack.shape, dtype = np.uint8)
 
             try:
                 # make a movie
@@ -74,6 +88,14 @@ def main():
 
                 for frame in range(stack.shape[0]):
                     xy = pc.xy[frame]
+
+                    # make a zero image array
+                    im_ = np.zeros(stack[frame].shape, dtype = np.uint8)
+
+                    # draw the digitized polygon
+                    cv2.polylines(im_, [np.round(xy).astype(np.int32).reshape(-1, 1, 2)], True, 255)
+                    # put into the proper place
+                    stack_mask[frame] = im_
 
                     xs = xy[:, 0]
                     ys = xy[:, 1]
@@ -116,6 +138,10 @@ def main():
                 ifile.flush()
             except:
                 continue
+
+            # save the tiff file
+            if args.mask_dir != "None":
+                imsave(os.path.join(args.mask_dir, '{0}_{1}.tiff'.format(case, rep)), stack_mask)
 
     ifile.close()
 
