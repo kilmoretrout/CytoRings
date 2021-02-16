@@ -91,7 +91,6 @@ def main():
 
                     # make a zero image array
                     im_ = np.zeros(stack[frame].shape, dtype = np.uint8)
-
                     # draw the digitized polygon
                     cv2.polylines(im_, [np.round(xy).astype(np.int32).reshape(-1, 1, 2)], True, 255)
                     # put into the proper place

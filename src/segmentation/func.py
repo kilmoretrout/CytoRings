@@ -562,12 +562,10 @@ def solve_harmonic_series(x, theta, N = 3):
         for ix in range(1, N + 1):
             _.append(np.sin(t*ix))
 
-
         #print _
         A.append(np.array(_))
 
     A = np.array(A)
-
     B = x.T
 
     co = np.linalg.lstsq(A, B)[0]
