@@ -110,6 +110,10 @@ def main():
     ifile = h5py.File(args.ifile, 'r')
     cases = list(ifile.keys())
 
+    cases = ['Control', 'Ani-1', 'Arx-2', 'Atn-1', 'Cap-1', 'Cap-2', 'Ccm-3',
+             'Act-2', 'Pfn-1', 'Cyk-1', 'Ect-2', 'Gck-1', 'Let-502', 'Mel-11',
+             'Plst-1', 'Nop-1', 'Nmy-2', 'Spd-1', 'Unc-59', 'Unc-60']
+
     if comm.rank == 0:
         ofile = h5py.File(args.ofile, 'w')
 
@@ -167,16 +171,21 @@ def main():
                     xyz_mask = np.array(xyz_mask, dtype = np.int64)
                     xyz_del = np.array(xyz_del, dtype=np.int64)
 
-                    W_ = np.zeros(W.shape, dtype = np.complex64)
-                    W_[list(xyz_mask[:,0]), list(xyz_mask[:,1]), list(xyz_mask[:,2])] = W[list(xyz_mask[:,0]), list(xyz_mask[:,1]), list(xyz_mask[:,2])]
+                    try:
+                        W_ = np.zeros(W.shape, dtype = np.complex64)
+                        W_[list(xyz_mask[:,0]), list(xyz_mask[:,1]), list(xyz_mask[:,2])] = W[list(xyz_mask[:,0]), list(xyz_mask[:,1]), list(xyz_mask[:,2])]
 
-                    W_abs[list(xyz_del[:,0]), list(xyz_del[:,1]), list(xyz_del[:,2])] = 0.
+                        W_abs[list(xyz_del[:,0]), list(xyz_del[:,1]), list(xyz_del[:,2])] = 0.
 
-                    IMF = np.zeros(speed.shape, dtype = np.float32)
-                    for k in range(72):
-                        IMF[k,:] = issq_cwt(W_[:,k,:], 'morlet')
+                        IMF = np.zeros(speed.shape, dtype = np.float32)
+                        for k in range(72):
+                            IMF[k,:] = issq_cwt(W_[:,k,:], 'morlet')
 
-                    IMFs.append(IMF)
+                        IMFs.append(IMF)
+                    except:
+                        del xyzs[-1]
+
+                        continue
 
                 comm.send([case, number, IMFs, xyzs, period], dest = 0)
             else:
