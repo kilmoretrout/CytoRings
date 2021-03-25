@@ -71,9 +71,9 @@ def parse_args():
     parser.add_argument("--ifile", default = "None")
     parser.add_argument("--ofile", default = "None")
 
-    parser.add_argument("--K", default="250")
+    parser.add_argument("--K", default="350")
     parser.add_argument("--max_delta_k", default="4")
-    parser.add_argument("--n_pixels", default="8")
+    parser.add_argument("--n_pixels", default="12")
     parser.add_argument("--n_surfaces", default="10")
 
     parser.add_argument("--trim", default = "5")
@@ -147,47 +147,8 @@ def main():
 
                     W.append(Tx)
 
-                W_abs = np.abs(np.array(W)).transpose(1, 0, 2)
                 W = np.array(W).transpose(1, 0, 2)
-
-                IMFs = []
-                xyzs = []
-
-                for ix in range(int(args.n_surfaces)):
-                    xyz = get_optimal_surface(W_abs, K = K, max_delta_k = max_delta_k)
-                    xyzs.append(xyz)
-
-                    xyz_mask = []
-                    xyz_del = []
-
-                    for k in range(xyz.shape[0]):
-                        for j in range(-n_pixels, n_pixels + 1):
-                            xyz_mask.append((xyz[k,2] + j, xyz[k,1], xyz[k,0]))
-
-                        for j in range(-4, 4):
-                            xyz_del.append((xyz[k, 2] + j, xyz[k, 1], xyz[k, 0]))
-
-
-                    xyz_mask = np.array(xyz_mask, dtype = np.int64)
-                    xyz_del = np.array(xyz_del, dtype=np.int64)
-
-                    try:
-                        W_ = np.zeros(W.shape, dtype = np.complex64)
-                        W_[list(xyz_mask[:,0]), list(xyz_mask[:,1]), list(xyz_mask[:,2])] = W[list(xyz_mask[:,0]), list(xyz_mask[:,1]), list(xyz_mask[:,2])]
-
-                        W_abs[list(xyz_del[:,0]), list(xyz_del[:,1]), list(xyz_del[:,2])] = 0.
-
-                        IMF = np.zeros(speed.shape, dtype = np.float32)
-                        for k in range(72):
-                            IMF[k,:] = issq_cwt(W_[:,k,:], 'morlet')
-
-                        IMFs.append(IMF)
-                    except:
-                        del xyzs[-1]
-
-                        continue
-
-                comm.send([case, number, IMFs, xyzs, period], dest = 0)
+                comm.send([case, number, W, period, speed], dest = 0)
             else:
                 comm.send([case, number, None, None, None], dest = 0)
 
@@ -196,14 +157,16 @@ def main():
         done = 0
 
         while done != len(case_numbers):
-            case, number, IMFs, xyzs, period = comm.recv(source=ANY_SOURCE)
+            case, number, W, period, speed = comm.recv(source=ANY_SOURCE)
 
             if period is not None:
                 print('0: writing results for {0}, {1}'.format(case, number))
 
-                ofile.create_dataset('{0}/{1}/xyzs'.format(case, number), data = np.array(xyzs, dtype = np.int64))
-                ofile.create_dataset('{0}/{1}/IMFs'.format(case, number), data = np.array(IMFs, dtype = np.float32))
-                ofile.create_dataset('{0}/{1}/period'.format(case, number), data = period)
+                ofile.create_dataset('{0}/{1}/W_real'.format(case, number), data = np.real(W), compression = 'lzf')
+                ofile.create_dataset('{0}/{1}/W_i'.format(case, number), data = np.imag(W), compression = 'lzf')
+
+                ofile.create_dataset('{0}/{1}/period'.format(case, number), data = period, compression = 'lzf')
+                ofile.create_dataset('{0}/{1}/speed'.format(case, number), data = speed, compression = 'lzf')
 
             done += 1
 

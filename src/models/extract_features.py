@@ -10,7 +10,7 @@ import platform
 import h5py
 import numpy as np
 from scipy.signal import periodogram, welch, spectrogram
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import UnivariateSpline, interp1d
 
 
 def poly_area(xy):
@@ -29,6 +29,8 @@ def parse_args():
 
     parser.add_argument("--trim", default = "5")
     parser.add_argument("--features", default = "fourier_spectra")
+
+    parser.add_argument("--key", default = "speed_phi")
 
     args = parser.parse_args()
 
@@ -55,17 +57,22 @@ def main():
 
     trim = int(args.trim)
 
+    X = []
+    F = []
+
+    periods = np.linspace(8., 120., 100)
+
     for case in cases:
         odir = os.path.join(args.odir, case)
         os.mkdir(odir)
 
         for number in list(ifile[case].keys()):
-            if 'speed_phi' in ifile[case][number].keys():
-                speed = np.array(ifile[case][number]['speed_phi'], dtype = np.float32)
-                xy = np.array(ifile[case][number]['speed_phi'], dtype = np.float32)
+            if args.key in ifile[case][number].keys():
+                speed = np.array(ifile[case][number][args.key], dtype = np.float32)
+                xy = np.array(ifile[case][number]['xy'], dtype = np.float32)
 
                 speed = speed[:, trim : -trim]
-                xy = xy[trim : -trim]
+                xy = xy[trim : -trim, :, :]
 
                 area = np.array([poly_area(xy[k]) for k in range(xy.shape[0])])
                 t = np.array(range(speed.shape[1])) * 2.7
@@ -78,25 +85,31 @@ def main():
                         x_ = np.abs(np.fft.fft(s, 100))**2
                         f_ = np.fft.fftfreq(100, 2.7)
 
-                        x.append(x_)
-                        f.append(f_)
+                        x.append(x_[f_ > 0])
+                        f.append(f_[f_ > 0])
+
+                    feature_names = ['{} s'.format(int(np.round(u ** -1))) for u in f[-1]]
 
                     np.savez(os.path.join(odir, '{}.npz'.format(number)),
                              x = np.array(x, dtype = np.float32),
-                             f = np.array(f, dtype = np.float32))
+                             f = np.array(f, dtype = np.float32), feature_names = np.array(feature_names, dtype = str))
                 elif args.features == "periodogram":
                     f = []
                     x = []
 
                     for s in speed:
                         f_, x_ = periodogram(s, 1.0 / 2.7)
+                        p = f_ ** -1
+                        x_ = interp1d(p, x_)
 
-                        x.append(x_)
-                        f.append(f_)
+                        x.append(x_(periods))
+                        f.append(periods)
+
+                    feature_names = ['{} s'.format(int(np.round(u))) for u in f[-1]]
 
                     np.savez(os.path.join(odir, '{}.npz'.format(number)),
                              x=np.array(x, dtype=np.float32),
-                             f=np.array(f, dtype=np.float32))
+                             f=np.array(f, dtype=np.float32), feature_names = np.array(feature_names, dtype = str))
                 elif args.features == "simple":
                     x = []
 
@@ -114,7 +127,25 @@ def main():
 
                         # get the number of inflection points
                         # and max and mins
-                        # f_s = UnivariateSpline()
+                        f_s = UnivariateSpline(t, s, s = 0.000001, k = 4)
+
+                        max_mins = f_s.derivative(1).roots()
+
+                        # get the number of inflection points
+                        # and max and mins
+                        f_s = UnivariateSpline(t, s, s=0.000001, k = 5)
+
+                        infs = f_s.derivative(2).roots()
+
+                        x_.append(len(max_mins))
+                        x_.append(len(infs))
+
+                        x.append(x_)
+
+                    feature_names = ['mean', 'max', 'min', 'var', 'length', 'max_mins', 'inf points']
+
+                    np.savez(os.path.join(odir, '{}.npz'.format(number)),
+                             x=np.array(x, dtype=np.float32), feature_names = np.array(feature_names, dtype = str))
 
                 # power spectral density using Welch's method
                 elif args.features == "welch":
@@ -123,13 +154,17 @@ def main():
 
                     for s in speed:
                         f_, x_ = welch(s, 1.0 / 2.7)
+                        p = f_ ** -1
+                        x_ = interp1d(p, x_)
 
-                        x.append(x_)
-                        f.append(f_)
+                        x.append(x_(periods))
+                        f.append(periods)
+
+                    feature_names = ['{} s'.format(int(np.round(u))) for u in f[-1]]
 
                     np.savez(os.path.join(odir, '{}.npz'.format(number)),
                              x=np.array(x, dtype=np.float32),
-                             f=np.array(f, dtype=np.float32))
+                             f=np.array(f, dtype=np.float32), feature_names = np.array(feature_names, dtype = str))
 
                 # spectrogram
                 elif args.features == "spectrogram":
@@ -139,9 +174,11 @@ def main():
                     for s in speed:
                         # check docs
                         f_, x_ = spectrogram(s, 1.0 / 2.7)
+                        p = f_ ** -1
+                        x_ = interp1d(p, x_)
 
-                        x.append(x_)
-                        f.append(f_)
+                        x.append(x_(periods))
+                        f.append(p)
 
                     np.savez(os.path.join(odir, '{}.npz'.format(number)),
                              x=np.array(x, dtype=np.float32),
