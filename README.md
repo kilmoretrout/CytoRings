@@ -2,7 +2,14 @@
 Repository for segmenting and analyzing cytokinetic ring closure in C. Elegans flourescence microscopy data. 
 Requires Python 2 and the requirements listed in requirements.txt
 
-# Environment setup:
+## External requirements:
+```
+ffmpeg
+hdf5
+openmpi (if running some of the HPC routines)
+```
+
+## Environment setup:
 ```
 # install Anaconda if nescessary
 wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
@@ -15,7 +22,7 @@ conda activate py39
 pip install -r requirements.txt
 ```
 
-# Running segmentation via Optimal Net Surface algorithm
+## Running segmentation via Optimal Net Surface algorithm
 
 ```
 python2 src/segmentation/extract_optnet.py --verbose --idir some_folder_of_tiffs --ofile output_file.hdf5
@@ -51,9 +58,9 @@ Or you can convert the database to a folder of CSVs:
 python src/segmentation/convert_to_csv.py --ifile output_file.hdf5 --odir output_csvs/
 ```
 
-# Step 2: Smooth paramaterization via Elliptical Fourier series and estimation of speed
+## Step 2: Smooth paramaterization via Elliptical Fourier series and estimation of speed
 
-Add speed and smooth paramaterizations:
+Add speed and smooth paramaterizations with:
 ```
 python src/segmentation/parameterize_shapes.py --ifile output_file.hdf5 --odir viz_dir
 ```
@@ -67,6 +74,8 @@ ifile.create_dataset('{0}/{1}/xy_phi'.format(case, rep), data = pc.xy_phi)
 ```
 
 Where speed and xy are the smooth versions of the xy data and the estimated l2-norm of the xy derivatives respectively.  The phi keys point to the data with the the phi correction (recommended).
+
+The script will also write visualizations in the form of MP4s in "viz_dir".
 
 The method is outlined in detail the included docs/method.pdf in docs.
 
