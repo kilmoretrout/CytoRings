@@ -71,51 +71,57 @@ def main():
             #    continue
 
             xy = np.array(ifile[case][rep]['xy'])
-            stack = np.array(ifile[case][rep]['stack'])
+
+            if 'stack' in list(ifile[case][rep].keys()):
+                stack = np.array(ifile[case][rep]['stack'])
+                plot = True
+            else:
+                plot = False
 
             pc.load_array(xy)
             pc.solve_axial_slices()
             pc.solve_phi()
 
-            # make an 8 bit 3D array for storing the masks
-            stack_mask = np.zeros(stack.shape, dtype = np.uint8)
-
             try:
-                # make a movie
-                cmd = "ffmpeg -y -f rawvideo -loglevel panic -vcodec rawvideo -s {1}x{2} -pix_fmt rgb24 -r 4 -i - -an -vcodec libx264 -pix_fmt yuv420p {0}".format(
-                    os.path.join(args.odir, '{0}_{1}.mp4'.format(case, rep)), 800, 600).split(' ')
-                p = Popen(cmd, stdin=PIPE)
+                if plot:
+                    # make an 8 bit 3D array for storing the masks
+                    stack_mask = np.zeros(stack.shape, dtype = np.uint8)
 
-                for frame in range(stack.shape[0]):
-                    xy = pc.xy[frame]
+                    # make a movie
+                    cmd = "ffmpeg -y -f rawvideo -loglevel panic -vcodec rawvideo -s {1}x{2} -pix_fmt rgb24 -r 4 -i - -an -vcodec libx264 -pix_fmt yuv420p {0}".format(
+                        os.path.join(args.odir, '{0}_{1}.mp4'.format(case, rep)), 800, 600).split(' ')
+                    p = Popen(cmd, stdin=PIPE)
 
-                    # make a zero image array
-                    im_ = np.zeros(stack[frame].shape, dtype = np.uint8)
-                    # draw the digitized polygon
-                    cv2.polylines(im_, [np.round(xy).astype(np.int32).reshape(-1, 1, 2)], True, 255)
-                    # put into the proper place
-                    stack_mask[frame] = im_
+                    for frame in range(stack.shape[0]):
+                        xy = pc.xy[frame]
 
-                    xs = xy[:, 0]
-                    ys = xy[:, 1]
+                        # make a zero image array
+                        im_ = np.zeros(stack[frame].shape, dtype = np.uint8)
+                        # draw the digitized polygon
+                        cv2.polylines(im_, [np.round(xy).astype(np.int32).reshape(-1, 1, 2)], True, 255)
+                        # put into the proper place
+                        stack_mask[frame] = im_
 
-                    fig = plt.figure(figsize=(8, 6))
-                    ax = plt.subplot(111)
+                        xs = xy[:, 0]
+                        ys = xy[:, 1]
 
-                    ax.set_title('Frame {0}'.format(frame))
-                    ax.imshow(stack[frame], cmap='gray')
-                    ax.plot(xs, ys)
+                        fig = plt.figure(figsize=(8, 6))
+                        ax = plt.subplot(111)
 
-                    canvas = FigureCanvas(fig)
-                    canvas.draw()
+                        ax.set_title('Frame {0}'.format(frame))
+                        ax.imshow(stack[frame], cmap='gray')
+                        ax.plot(xs, ys)
 
-                    buf = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(600, 800, 3)
-                    p.stdin.write(buf.tostring())
+                        canvas = FigureCanvas(fig)
+                        canvas.draw()
 
-                    plt.close()
+                        buf = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape(600, 800, 3)
+                        p.stdin.write(buf.tostring())
 
-                p.stdin.close()
-                p.wait()
+                        plt.close()
+
+                    p.stdin.close()
+                    p.wait()
 
                 speed, speed_phi = pc.compute_speeds()
 
