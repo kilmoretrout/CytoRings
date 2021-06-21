@@ -1,6 +1,19 @@
 # CytoRings
 Repository for segmenting and analyzing cytokinetic ring closure in C. Elegans flourescence microscopy data. 
-Requires Python 2 and the requirements listed in requirements.txt 
+Requires Python 2 and the requirements listed in requirements.txt
+
+# Environment setup:
+```
+# install Anaconda if nescessary
+wget https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
+sh Anaconda3-2020.11-Linux-x86_64.sh
+
+conda update -n base -c defaults conda
+conda create --name py39 python==3.9
+conda activate py39
+
+pip install -r requirements.txt
+```
 
 # Running segmentation via Optimal Net Surface algorithm
 
@@ -37,3 +50,5 @@ Or you can convert the database to a folder of CSVs:
 ```
 python2 src/segmentation/convert_to_csv.py --ifile output_file.hdf5 --odir output_csvs/
 ```
+
+
