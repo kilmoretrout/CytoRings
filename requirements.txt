@@ -3,5 +3,10 @@ matplotlib
 tifffile
 h5py
 maxflow
-cv2 (opencv-python)
+opencv-python
+ssqueezepy
+mpi4py
+scipy
+pyefd
+trimesh
 
