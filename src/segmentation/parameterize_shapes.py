@@ -139,6 +139,7 @@ def main():
                 ifile.create_dataset('{0}/{1}/speed_phi'.format(case, rep), data = speed_phi)
                 ifile.create_dataset('{0}/{1}/xy_smooth'.format(case, rep), data = pc.xy)
                 ifile.create_dataset('{0}/{1}/xy_phi'.format(case, rep), data = pc.xy_phi)
+                ifile.create_dataset('{0}/{1}/co'.format(case, rep), data = pc.co)
 
                 ifile.flush()
             except:
