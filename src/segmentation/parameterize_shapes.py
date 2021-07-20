@@ -27,6 +27,7 @@ def parse_args():
     parser.add_argument("--ifile", default = "None")
     #
     parser.add_argument("--odir", default = "cyto_data/movies")
+    parser.add_argument("--no_plot", action = "store_true")
     parser.add_argument("--mask_dir", default = "None")
 
     args = parser.parse_args()
@@ -76,6 +77,9 @@ def main():
                 stack = np.array(ifile[case][rep]['stack'])
                 plot = True
             else:
+                plot = False
+                
+            if args.no_plot:
                 plot = False
 
             pc.load_array(xy)
