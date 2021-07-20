@@ -139,14 +139,16 @@ def main():
                 plt.savefig(os.path.join(args.odir, '{0}_{1}.png'.format(case, rep)), dpi = 100)
                 plt.close()
 
-                ifile.create_dataset('{0}/{1}/speed'.format(case, rep), data = speed)
-                ifile.create_dataset('{0}/{1}/speed_phi'.format(case, rep), data = speed_phi)
-                ifile.create_dataset('{0}/{1}/xy_smooth'.format(case, rep), data = pc.xy)
-                ifile.create_dataset('{0}/{1}/xy_phi'.format(case, rep), data = pc.xy_phi)
+                if not args.just_co:
+                    ifile.create_dataset('{0}/{1}/speed'.format(case, rep), data = speed)
+                    ifile.create_dataset('{0}/{1}/speed_phi'.format(case, rep), data = speed_phi)
+                    ifile.create_dataset('{0}/{1}/xy_smooth'.format(case, rep), data = pc.xy)
+                    ifile.create_dataset('{0}/{1}/xy_phi'.format(case, rep), data = pc.xy_phi)
                 ifile.create_dataset('{0}/{1}/co'.format(case, rep), data = pc.co)
 
                 ifile.flush()
-            except:
+            except Exception as e:
+                print(e)
                 continue
 
             # save the tiff file
