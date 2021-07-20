@@ -27,7 +27,10 @@ def parse_args():
     parser.add_argument("--ifile", default = "None")
     #
     parser.add_argument("--odir", default = "cyto_data/movies")
+    
     parser.add_argument("--no_plot", action = "store_true")
+    parser.add_argument("--just_co", action = "store_true")
+    
     parser.add_argument("--mask_dir", default = "None")
 
     args = parser.parse_args()
