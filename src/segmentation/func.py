@@ -17,6 +17,7 @@ def forceAspect(ax,aspect=1):
     extent =  im[0].get_extent()
     ax.set_aspect(abs((extent[1]-extent[0])/(extent[3]-extent[2]))/aspect)
 
+# http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
 def differentiator(f, N = 7):
     if N == 7:
         ret = []
